@@ -17,13 +17,17 @@ buildscript {
     }
 }
 
+plugins {
+    id 'io.vertx.vertx-plugin' version '1.1.1'
+}
+
 apply plugin: 'kotlin'
 apply plugin: 'net.corda.plugins.cordapp'
 apply plugin: 'net.corda.plugins.quasar-utils'
 apply plugin: 'idea'
 apply plugin: "com.vaadin"
 
-defaultTasks("clean", "build")
+defaultTasks("clean", "vaadinBuildFrontend", "build")
 
 repositories {
     jcenter()
@@ -37,6 +41,11 @@ vaadin {
     pnpmEnable = true
 }
 
+vertx {
+    mainVerticle = "com.github.mcollovati.vertx.vaadin.VaadinVerticle"
+    vertxVersion = "3.9.1"
+}
+
 configurations {
     compile.exclude group: "com.vaadin", module: "flow-push"
     compile.exclude group: "com.vaadin", module: "flow-client"
@@ -45,17 +54,26 @@ configurations {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     compile "org.jetbrains.kotlin:kotlin-reflect"
-    compile "com.vaadin:vaadin-bom:14.2.0"
-    compile "com.github.mcollovati.vertx:vertx-vaadin-flow:14.2.0"
-    compile "jakarta.servlet:jakarta.servlet-api:4.0.2"
-    compile "com.github.mcollovati.vertx:vaadin-flow-sockjs:14.2.0"
+    compile 'io.vertx:vertx-lang-kotlin'
+    compile "com.vaadin:vaadin-bom:$vaadin_version"
+    runtimeOnly "jakarta.servlet:jakarta.servlet-api:4.0.2"
+    runtimeOnly "com.github.mcollovati.vertx:vertx-vaadin-flow:$vertx_vaadin_version"
+    runtimeOnly "com.github.mcollovati.vertx:vaadin-flow-sockjs:$vertx_vaadin_version"
+    implementation "org.slf4j:slf4j-simple:1.7.30"
 
     // Vaadin 14
-    compile("com.vaadin:vaadin-core:14.2.0") {
+    compile("com.vaadin:vaadin-core:$vaadin_version") {
         //Webjars are only needed when running in Vaadin 13 compatibility mode
         ["com.vaadin.webjar", "org.webjars.bowergithub.insites",
          "org.webjars.bowergithub.polymer", "org.webjars.bowergithub.polymerelements",
          "org.webjars.bowergithub.vaadin", "org.webjars.bowergithub.webcomponents"]
                 .forEach { group -> exclude(group: group) }
     }
+}
+
+task productionBuild {
+    group = "Build"
+    description = "Build production fat jar"
+    dependsOn "vaadinBuildFrontend", "vaadinBuildFrontend", "shadowJar"
+    ext.setProperty("vaadin.productionMode", "true")
 }
