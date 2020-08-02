@@ -10,9 +10,6 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_plugin_version"
-        classpath "net.corda.plugins:cordapp:$corda_plugins_version"
-        classpath "net.corda.plugins:cordformation:$corda_plugins_version"
-        classpath "net.corda.plugins:quasar-utils:$corda_plugins_version"
         classpath "com.vaadin:vaadin-gradle-plugin:0.7.0"
     }
 }
@@ -22,8 +19,6 @@ plugins {
 }
 
 apply plugin: 'kotlin'
-apply plugin: 'net.corda.plugins.cordapp'
-apply plugin: 'net.corda.plugins.quasar-utils'
 apply plugin: 'idea'
 apply plugin: "com.vaadin"
 
@@ -34,6 +29,11 @@ repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
+    maven { url 'https://maven.google.com/' }
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://software.r3.com/artifactory/corda' }
+    maven { url 'https://software.r3.com/artifactory/corda-lib' }
+    maven { url 'https://repo.gradle.org/gradle/libs-releases' }
 }
 
 // example of how to configure the Gradle Vaadin Plugin
@@ -52,14 +52,17 @@ configurations {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    compile "org.jetbrains.kotlin:kotlin-reflect"
+    shadow "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    shadow "org.jetbrains.kotlin:kotlin-reflect"
     compile 'io.vertx:vertx-lang-kotlin'
     compile "com.vaadin:vaadin-bom:$vaadin_version"
-    runtimeOnly "jakarta.servlet:jakarta.servlet-api:4.0.2"
-    runtimeOnly "com.github.mcollovati.vertx:vertx-vaadin-flow:$vertx_vaadin_version"
-    runtimeOnly "com.github.mcollovati.vertx:vaadin-flow-sockjs:$vertx_vaadin_version"
-    implementation "org.slf4j:slf4j-simple:1.7.30"
+    shadow "net.corda:corda-core:$corda_version"
+    shadow "net.corda:corda-node:$corda_version"
+    shadow "net.corda:corda:$corda_version"
+    compile "jakarta.servlet:jakarta.servlet-api:4.0.2"
+    compile "com.github.mcollovati.vertx:vertx-vaadin-flow:$vertx_vaadin_version"
+    compile "com.github.mcollovati.vertx:vaadin-flow-sockjs:$vertx_vaadin_version"
+    compile "org.slf4j:slf4j-simple:1.7.30"
 
     // Vaadin 14
     compile("com.vaadin:vaadin-core:$vaadin_version") {
@@ -71,9 +74,45 @@ dependencies {
     }
 }
 
+shadowJar {
+    dependencies {
+        exclude(dependency("net.corda:corda-core:$corda_version"))
+        exclude(dependency("net.corda:corda-node:$corda_version"))
+        exclude(dependency("net.corda:corda:$corda_version"))
+        exclude(dependency("net.corda:corda-node-driver:$corda_version"))
+    }
+    manifest {
+        attributes 'Cordapp-Contract-Vendor': 'Reneo DLT'
+        attributes 'Cordapp-Contract-Version': '1'
+        attributes 'Cordapp-Contract-Name': 'Cordium'
+        attributes 'Target-Platform-Version': '5'
+        attributes 'Sealed': 'true'
+        attributes 'Min-Platform-Version': '5'
+        attributes 'Cordapp-Contract-Licence': 'Apache License, Version 2.0'
+        attributes 'Class-Path': ''
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    kotlinOptions {
+        languageVersion = "1.2"
+        apiVersion = "1.2"
+        jvmTarget = "1.8"
+        javaParameters = true   // Useful for reflection.
+    }
+}
+
 task productionBuild {
     group = "Build"
     description = "Build production fat jar"
-    dependsOn "vaadinBuildFrontend", "vaadinBuildFrontend", "shadowJar"
+    dependsOn "vaadinPrepareFrontend", "vaadinBuildFrontend", "shadowJar"
     ext.setProperty("vaadin.productionMode", "true")
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
 }
