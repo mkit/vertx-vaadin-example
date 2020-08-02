@@ -37,10 +37,19 @@ vaadin {
     pnpmEnable = true
 }
 
+configurations {
+    compile.exclude group: "com.vaadin", module: "flow-push"
+    compile.exclude group: "com.vaadin", module: "flow-client"
+}
+
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     compile "org.jetbrains.kotlin:kotlin-reflect"
     compile "com.vaadin:vaadin-bom:14.2.0"
+    compile "com.github.mcollovati.vertx:vertx-vaadin-flow:14.2.0"
+    compile "jakarta.servlet:jakarta.servlet-api:4.0.2"
+    compile "com.github.mcollovati.vertx:vaadin-flow-sockjs:14.2.0"
+
     // Vaadin 14
     compile("com.vaadin:vaadin-core:14.2.0") {
         //Webjars are only needed when running in Vaadin 13 compatibility mode
